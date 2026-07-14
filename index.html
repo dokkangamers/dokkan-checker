@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ドッカン フェス限 所持率チェッカー</title>
+<style>
+:root {
+  --bg:#10131a;
+  --panel:#1a2030;
+  --panel2:#232b3e;
+  --text:#f7f8fc;
+  --muted:#aeb7ca;
+  --accent:#ffd54a;
+  --owned:#2ecc71;
+  --line:#374057;
+  --danger:#e85d75;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0;
+  font-family:system-ui,-apple-system,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;
+  background:linear-gradient(180deg,#0d1017,#151a25);
+  color:var(--text);
+  min-height:100vh;
+}
+.container { max-width:1200px; margin:auto; padding:18px; }
+h1 {
+  margin:0 0 14px;
+  font-size:clamp(24px,4vw,38px);
+  text-align:center;
+}
+.sub {
+  text-align:center;
+  color:var(--muted);
+  margin:-6px 0 16px;
+}
+.summary {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  margin-bottom:14px;
+}
+.stat {
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:14px;
+  text-align:center;
+}
+.stat strong {
+  display:block;
+  font-size:25px;
+  color:var(--accent);
+  margin-top:4px;
+}
+.progress {
+  height:14px;
+  background:#090d13;
+  border:1px solid var(--line);
+  border-radius:999px;
+  overflow:hidden;
+  margin:12px 0 16px;
+}
+.progress > div {
+  height:100%;
+  background:linear-gradient(90deg,#30c875,#ffd54a);
+  width:0%;
+  transition:width .2s;
+}
+.controls {
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+  display:grid;
+  grid-template-columns:2fr repeat(4,1fr);
+  gap:8px;
+  margin-bottom:10px;
+}
+.actions-bar {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:16px;
+}
+input, select, button {
+  min-height:42px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:#111722;
+  color:var(--text);
+  padding:9px 10px;
+  font-size:14px;
+}
+button {
+  cursor:pointer;
+  font-weight:700;
+}
+button:hover { filter:brightness(1.15); }
+button.danger { border-color:var(--danger); }
+.list {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(315px,1fr));
+  gap:10px;
+}
+.card {
+  background:var(--panel);
+  border:2px solid var(--line);
+  border-radius:14px;
+  padding:13px;
+  display:grid;
+  gap:8px;
+  transition:.15s;
+}
+
+.card-main{
+  display:grid;
+  grid-template-columns:88px 1fr;
+  gap:12px;
+  align-items:start;
+}
+.character-icon{
+  width:88px;
+  height:88px;
+  object-fit:contain;
+  border-radius:10px;
+  background:#111722;
+  border:1px solid var(--line);
+}
+@media (max-width:520px){
+  .card-main{grid-template-columns:72px 1fr;}
+  .character-icon{width:72px;height:72px;}
+}
+
+.card.owned {
+  border-color:var(--owned);
+  background:#162a25;
+}
+.topline {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:start;
+}
+.id {
+  color:var(--muted);
+  font-size:12px;
+  white-space:nowrap;
+}
+.title {
+  color:var(--accent);
+  font-weight:800;
+  line-height:1.3;
+}
+.name {
+  font-size:18px;
+  font-weight:800;
+  line-height:1.35;
+}
+.badges {
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.badge {
+  padding:4px 8px;
+  border-radius:999px;
+  background:var(--panel2);
+  color:#dce3f3;
+  font-size:12px;
+}
+.actions {
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  align-items:center;
+}
+.actions label {
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-weight:700;
+}
+.actions select { min-height:36px; }
+.meta {
+  color:var(--muted);
+  font-size:12px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.empty {
+  grid-column:1/-1;
+  text-align:center;
+  color:var(--muted);
+  padding:40px;
+}
+.footer {
+  color:var(--muted);
+  text-align:center;
+  padding:18px 0 6px;
+  font-size:12px;
+}
+.hidden-input { display:none; }
+@media (max-width:800px) {
+  .summary { grid-template-columns:repeat(2,1fr); }
+  .controls { grid-template-columns:1fr 1fr; }
+  .controls input { grid-column:1/-1; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>ドッカン フェス限 所持率チェッカー</h1>
+
+  <section class="summary">
+    <div class="stat"><span>所持数</span><strong id="ownedCount">0</strong><small id="totalText">/ 0</small></div>
+    <div class="stat"><span>所持率</span><strong id="ownedRate">0%</strong></div>
+    <div class="stat"><span>虹</span><strong id="rainbowCount">0</strong></div>
+    <div class="stat"><span>未所持</span><strong id="missingCount">0</strong></div>
+  </section>
+
+  <div class="progress"><div id="progressBar"></div></div>
+
+  <section class="controls">
+    <input id="search" type="search" placeholder="二つ名・キャラ名で検索">
+    <select id="typeFilter"><option value="">全属性</option></select>
+    <select id="rarityFilter"><option value="">全レア</option></select>
+    <select id="yearFilter"><option value="">全年</option></select>
+    <select id="ownedFilter">
+      <option value="">所持状態：すべて</option>
+      <option value="owned">所持のみ</option>
+      <option value="missing">未所持のみ</option>
+      <option value="rainbow">虹のみ</option>
+    </select>
+  </section>
+
+  <div class="actions-bar">
+    <button id="resetBtn" class="danger">全リセット</button>
+  </div>
+
+  <main id="list" class="list"></main>
+  <div class="footer">Excel掲載データ：179体 ／ 所持・凸数はブラウザ内に自動保存</div>
+</div>
+
+<script>
+const characters = [{"id": 1, "order": 1, "title": "破壊と殺戮の超戦士", "name": "伝説の超サイヤ人ブロリー", "type": "極力", "rarity": "UR", "category": "フェス限", "releaseDate": "2015/10/01", "eza": "○", "seza": "○"}, {"id": 2, "order": 2, "title": "万物の凌駕", "name": "パーフェクトセル", "type": "極技", "rarity": "UR", "category": "フェス限", "releaseDate": "2015/11/01", "eza": "○", "seza": "○"}, {"id": 3, "order": 3, "title": "心なき破壊衝動", "name": "魔人ブウ(純粋)", "type": "極体", "rarity": "UR", "category": "フェス限", "releaseDate": "2015/12/04", "eza": "○", "seza": "○"}, {"id": 4, "order": 4, "title": "最強の奥義", "name": "超サイヤ人3孫悟空", "type": "超速", "rarity": "UR", "category": "フェス限", "releaseDate": "2015/12/31", "eza": "○", "seza": "○"}, {"id": 5, "order": 5, "title": "絶対無敵の戦士", "name": "超ゴジータ", "type": "超力", "rarity": "UR", "category": "フェス限", "releaseDate": "2016/02/04", "eza": "○", "seza": "○"}, {"id": 6, "order": 6, "title": "地獄の羅刹鬼", "name": "スーパージャネンバ", "type": "極知", "rarity": "UR", "category": "フェス限", "releaseDate": "2016/02/04", "eza": "○", "seza": "○"}, {"id": 7, "order": 7, "title": "帝王の執念", "name": "フリーザ(フルパワー)", "type": "極体", "rarity": "UR", "category": "フェス限", "releaseDate": "2016/03/01", "eza": "○", "seza": "○"}, {"id": 8, "order": 8, "title": "究極パワー放出", "name": "アルティメット孫悟飯", "type": "超知", "rarity": "UR", "category": "フェス限", "releaseDate": "2016/04/01", "eza": "○", "seza": "○"}, {"id": 9, "order": 9, "title": "戦闘民族の真価", "name": "超サイヤ人3ベジータ", "type": "超力", "rarity": "UR", "category": "フェス限", "releaseDate": "2016/05/01", "eza": "○", "seza": "○"}, {"id": 10, "order": 10, "title": "振り下ろされた罰", "name": "ビルス", "type": "超技", "rarity": "UR", "category": "フェス限", "releaseDate": "2016/05/31", "eza": "○", "seza": "○"}, {"id": 11, "order": 11, "title": "終わりなき恐怖", "name": "伝説の超サイヤ人ブロリー", "type": "極体", "rarity": "UR", "category": "フェス限", "releaseDate": "2016/07/07", "eza": "○", "seza": "×"}, {"id": 12, "order": 12, "title": "比類なき黄金の気", "name": "超ベジット", "type": "超速", "rarity": "UR", "category": "フェス限", "releaseDate": "2016/07/07", "eza": "○", "seza": "○"}, {"id": 13, "order": 13, "title": "正義の死神大暴れ", "name": "超サイヤ人3ゴテンクス", "type": "超技", "rarity": "UR", "category": "フェス限", "releaseDate": "2016/08/01", "eza": "○", "seza": "○"}, {"id": 14, "order": 14, "title": "進化を遂げた一撃", "name": "超サイヤ人ゴッドSS孫悟空", "type": "超速", "rarity": "UR", "category": "フェス限", "releaseDate": "2016/08/10", "eza": "○", "seza": "○"}, {"id": 15, "order": 15, "title": "絶望へのカウントダウン", "name": "魔人ブウ(アルティメット悟飯吸収)", "type": "極知", "rarity": "UR", "category": "フェス限", "releaseDate": "2016/09/01", "eza": "○", "seza": "○"}, {"id": 16, "order": 16, "title": "復讐の焔", "name": "ゴールデンフリーザ", "type": "極技", "rarity": "UR", "category": "フェス限", "releaseDate": "2016/09/15", "eza": "○", "seza": "×"}, {"id": 17, "order": 17, "title": "絶望のマイナスエネルギー", "name": "超一星龍", "type": "極力", "rarity": "UR", "category": "フェス限", "releaseDate": "2016/09/30", "eza": "○", "seza": "○"}, {"id": 18, "order": 18, "title": "漆黒の脅威", "name": "ゴクウブラック", "type": "極体", "rarity": "UR", "category": "フェス限", "releaseDate": "2016/10/20", "eza": "○", "seza": "○"}, {"id": 19, "order": 19, "title": "極まりしブルーの力", "name": "超サイヤ人ゴッドSSベジット", "type": "超体", "rarity": "UR", "category": "フェス限", "releaseDate": "2016/11/17", "eza": "○", "seza": "○"}, {"id": 20, "order": 20, "title": "薔薇色に染まる超サイヤ人", "name": "ゴクウブラック(超サイヤ人ロゼ)", "type": "極速", "rarity": "UR", "category": "フェス限", "releaseDate": "2016/11/17", "eza": "○", "seza": "○"}, {"id": 21, "order": 21, "title": "地獄へのいざない", "name": "パーフェクトセル", "type": "極力", "rarity": "UR", "category": "フェス限", "releaseDate": "2016/12/01", "eza": "○", "seza": "×"}, {"id": 22, "order": 22, "title": "希望と願いの剣", "name": "超サイヤ人トランクス(未来)", "type": "超知", "rarity": "UR", "category": "フェス限", "releaseDate": "2016/12/28", "eza": "○", "seza": "×"}, {"id": 23, "order": 23, "title": "絶対神の憤怒", "name": "合体ザマス", "type": "極技", "rarity": "UR", "category": "フェス限", "releaseDate": "2016/12/28", "eza": "○", "seza": "×"}, {"id": 24, "order": 24, "title": "戦闘民族の熱き思い", "name": "超サイヤ人ゴッドSSベジータ", "type": "超知", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/01/13", "eza": "○", "seza": "○"}, {"id": 25, "order": 25, "title": "至高無上の超サイヤ人", "name": "超サイヤ人4ベジータ", "type": "超速", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/02/01", "eza": "○", "seza": "○"}, {"id": 26, "order": 26, "title": "究極進化の超サイヤ人", "name": "超サイヤ人4孫悟空", "type": "超力", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/02/01", "eza": "○", "seza": "○"}, {"id": 27, "order": 27, "title": "地獄の幕開け", "name": "クウラ(最終形態)", "type": "極体", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/03/01", "eza": "○", "seza": "○"}, {"id": 28, "order": 28, "title": "驚愕の超変身", "name": "超サイヤ人3孫悟空(天使)", "type": "超技", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/03/18", "eza": "○", "seza": "×"}, {"id": 29, "order": 29, "title": "究極の人造人間", "name": "超17号", "type": "極速", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/04/01", "eza": "○", "seza": "×"}, {"id": 30, "order": 30, "title": "全てを超える魔人", "name": "魔人ブウ(純粋)", "type": "極知", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/04/17", "eza": "○", "seza": "×"}, {"id": 31, "order": 31, "title": "邪悪な侵犯", "name": "スーパージャネンバ", "type": "極力", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/04/28", "eza": "○", "seza": "×"}, {"id": 32, "order": 32, "title": "悪を砕く光", "name": "超ゴジータ", "type": "超知", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/04/28", "eza": "○", "seza": "×"}, {"id": 33, "order": 33, "title": "宇宙一の大爆走", "name": "超サイヤ人3ゴテンクス", "type": "超体", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/06/01", "eza": "○", "seza": "×"}, {"id": 34, "order": 34, "title": "伝説を超えた進化形態", "name": "超サイヤ人3ブロリー", "type": "極技", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/06/30", "eza": "○", "seza": "×"}, {"id": 35, "order": 35, "title": "天下無双の輝き", "name": "超サイヤ人4ゴジータ", "type": "超技", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/08/03", "eza": "○", "seza": "×"}, {"id": 36, "order": 36, "title": "崩壊の渦動", "name": "超一星龍", "type": "極体", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/08/03", "eza": "○", "seza": "×"}, {"id": 37, "order": 37, "title": "潜在パワーのすべて", "name": "アルティメット孫悟飯", "type": "超力", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/09/01", "eza": "○", "seza": "×"}, {"id": 38, "order": 38, "title": "帝王の真の輝き", "name": "ゴールデンフリーザ(天使)", "type": "極知", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/09/29", "eza": "○", "seza": "×"}, {"id": 39, "order": 39, "title": "超次元の極意", "name": "孫悟空(身勝手の極意“兆”)", "type": "超知", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/10/08", "eza": "○", "seza": "○"}, {"id": 40, "order": 40, "title": "無限の輝き", "name": "超ベジット", "type": "超体", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/10/31", "eza": "○", "seza": "×"}, {"id": 41, "order": 41, "title": "サイヤ人の力の証明", "name": "超サイヤ人3バーダック", "type": "超知", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/11/30", "eza": "○", "seza": "×"}, {"id": 42, "order": 42, "title": "怒りの制裁", "name": "ゴクウブラック(超サイヤ人ロゼ)", "type": "極力", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/12/28", "eza": "○", "seza": "×"}, {"id": 43, "order": 43, "title": "神をも凌駕する力", "name": "超サイヤ人ゴッドSSベジット", "type": "超技", "rarity": "UR", "category": "フェス限", "releaseDate": "2017/12/28", "eza": "○", "seza": "×"}, {"id": 44, "order": 44, "title": "合体する超パワー", "name": "超サイヤ人孫悟空&超サイヤ人ベジータ", "type": "超知", "rarity": "LR", "category": "フェス限", "releaseDate": "2018/01/31", "eza": "○", "seza": "×"}, {"id": 45, "order": 45, "title": "ふたつの力の融合", "name": "超サイヤ人孫悟空(天使)&超サイヤ人ベジータ(天使)", "type": "超体", "rarity": "LR", "category": "フェス限", "releaseDate": "2018/01/31", "eza": "○", "seza": "×"}, {"id": 46, "order": 46, "title": "絶対的な強さ", "name": "ジレン", "type": "超力", "rarity": "UR", "category": "フェス限", "releaseDate": "2018/03/18", "eza": "○", "seza": "×"}, {"id": 47, "order": 47, "title": "爆発的な進化", "name": "ターレス", "type": "極速", "rarity": "UR", "category": "フェス限", "releaseDate": "2018/04/01", "eza": "○", "seza": "×"}, {"id": 48, "order": 48, "title": "誇りの遵守", "name": "超サイヤ人ゴッドSSベジータ", "type": "超速", "rarity": "UR", "category": "フェス限", "releaseDate": "2018/04/26", "eza": "○", "seza": "×"}, {"id": 49, "order": 49, "title": "絶望に立ち向かう力", "name": "超サイヤ人孫悟飯(未来)", "type": "超体", "rarity": "UR", "category": "フェス限", "releaseDate": "2018/05/31", "eza": "○", "seza": "×"}, {"id": 50, "order": 50, "title": "希望を背負った一撃", "name": "超フルパワーサイヤ人4孫悟空", "type": "超技", "rarity": "UR", "category": "フェス限", "releaseDate": "2018/07/01", "eza": "○", "seza": "×"}, {"id": 51, "order": 51, "title": "死力を尽くしたサバイバル", "name": "人造人間17号", "type": "超体", "rarity": "UR", "category": "フェス限", "releaseDate": "2018/07/31", "eza": "○", "seza": "×"}, {"id": 52, "order": 52, "title": "熱く震える力", "name": "超サイヤ人孫悟空", "type": "超速", "rarity": "UR", "category": "フェス限", "releaseDate": "2018/08/31", "eza": "○", "seza": "×"}, {"id": 53, "order": 53, "title": "凍てつく威光", "name": "フリーザ(第一形態)", "type": "極技", "rarity": "UR", "category": "フェス限", "releaseDate": "2018/08/31", "eza": "○", "seza": "×"}, {"id": 54, "order": 54, "title": "驚異の吸収能力", "name": "魔人ブウ(悪)", "type": "極力", "rarity": "UR", "category": "フェス限", "releaseDate": "2018/10/04", "eza": "○", "seza": "×"}, {"id": 55, "order": 55, "title": "ビッグゲテスターとの融合", "name": "メタルクウラ", "type": "極速", "rarity": "UR", "category": "フェス限", "releaseDate": "2018/10/31", "eza": "○", "seza": "×"}, {"id": 56, "order": 56, "title": "気高き美しさの頂点", "name": "ゴクウブラック", "type": "極知", "rarity": "UR", "category": "フェス限", "releaseDate": "2018/11/29", "eza": "○", "seza": "×"}, {"id": 57, "order": 57, "title": "全てを超えた最強の融合", "name": "超サイヤ人ゴジータ", "type": "超速", "rarity": "UR", "category": "フェス限", "releaseDate": "2018/12/26", "eza": "○", "seza": "×"}, {"id": 58, "order": 58, "title": "戦闘民族の終わりなき進化", "name": "超サイヤ人ブロリー", "type": "極体", "rarity": "UR", "category": "フェス限", "releaseDate": "2018/12/26", "eza": "○", "seza": "×"}, {"id": 59, "order": 59, "title": "最強サイヤ人の到達点", "name": "超サイヤ人4孫悟空", "type": "超速", "rarity": "LR", "category": "フェス限", "releaseDate": "2019/01/30", "eza": "○", "seza": "×"}, {"id": 60, "order": 60, "title": "無敵を誇るサイヤ人の頂", "name": "超サイヤ人4ベジータ", "type": "超力", "rarity": "LR", "category": "フェス限", "releaseDate": "2019/01/30", "eza": "○", "seza": "×"}, {"id": 61, "order": 61, "title": "すべてをかけた拳", "name": "孫悟空(少年期)", "type": "超知", "rarity": "UR", "category": "フェス限", "releaseDate": "2019/03/05", "eza": "○", "seza": "×"}, {"id": 62, "order": 62, "title": "限りない戦闘力", "name": "超サイヤ人ベジータ", "type": "超体", "rarity": "UR", "category": "フェス限", "releaseDate": "2019/03/18", "eza": "○", "seza": "×"}, {"id": 63, "order": 63, "title": "殺し屋の極意", "name": "ヒット", "type": "極技", "rarity": "UR", "category": "フェス限", "releaseDate": "2019/04/01", "eza": "○", "seza": "×"}, {"id": 64, "order": 64, "title": "未来を守る強靭な意志", "name": "トランクス(青年期)(未来)", "type": "超技", "rarity": "UR", "category": "フェス限", "releaseDate": "2019/04/26", "eza": "○", "seza": "×"}, {"id": 65, "order": 65, "title": "神の真の力", "name": "ザマス", "type": "極速", "rarity": "UR", "category": "フェス限", "releaseDate": "2019/04/26", "eza": "○", "seza": "×"}, {"id": 66, "order": 66, "title": "極限の怒り", "name": "孫悟空", "type": "超力", "rarity": "UR", "category": "フェス限", "releaseDate": "2019/05/31", "eza": "○", "seza": "×"}, {"id": 67, "order": 67, "title": "奇跡を呼ぶ大激闘", "name": "超サイヤ人孫悟飯(青年期)&超サイヤ人孫悟天(幼年期)", "type": "超技", "rarity": "LR", "category": "フェス限", "releaseDate": "2019/07/01", "eza": "○", "seza": "×"}, {"id": 68, "order": 68, "title": "神と大魔王の融合", "name": "ピッコロ", "type": "超体", "rarity": "UR", "category": "フェス限", "releaseDate": "2019/07/30", "eza": "○", "seza": "×"}, {"id": 69, "order": 69, "title": "目覚める真の力", "name": "超サイヤ人孫悟飯(少年期)", "type": "超速", "rarity": "LR", "category": "フェス限", "releaseDate": "2019/08/30", "eza": "○", "seza": "×"}, {"id": 70, "order": 70, "title": "完全体の真価", "name": "セル(完全体)", "type": "極知", "rarity": "LR", "category": "フェス限", "releaseDate": "2019/08/30", "eza": "○", "seza": "×"}, {"id": 71, "order": 71, "title": "義勇の戦士", "name": "孫悟飯(未来)", "type": "超知", "rarity": "UR", "category": "フェス限", "releaseDate": "2019/10/03", "eza": "○", "seza": "×"}, {"id": 72, "order": 72, "title": "とびっきりの究極パワー", "name": "クウラ", "type": "極力", "rarity": "UR", "category": "フェス限", "releaseDate": "2019/10/31", "eza": "○", "seza": "×"}, {"id": 73, "order": 73, "title": "標的抹殺の回路", "name": "人造人間13号", "type": "極速", "rarity": "UR", "category": "フェス限", "releaseDate": "2019/11/29", "eza": "○", "seza": "×"}, {"id": 74, "order": 74, "title": "熱く奮い立つ闘志", "name": "超サイヤ人2孫悟空(天使)", "type": "超知", "rarity": "UR", "category": "フェス限", "releaseDate": "2019/12/26", "eza": "○", "seza": "×"}, {"id": 75, "order": 75, "title": "全てを吹き飛ばす闘志", "name": "超サイヤ人2ベジータ", "type": "超技", "rarity": "UR", "category": "フェス限", "releaseDate": "2019/12/26", "eza": "○", "seza": "×"}, {"id": 76, "order": 76, "title": "究極最強の融合", "name": "ゴジータ", "type": "超力", "rarity": "LR", "category": "フェス限", "releaseDate": "2020/01/30", "eza": "○", "seza": "×"}, {"id": 77, "order": 77, "title": "究極無敵の合体", "name": "ベジット", "type": "超技", "rarity": "LR", "category": "フェス限", "releaseDate": "2020/01/30", "eza": "○", "seza": "×"}, {"id": 78, "order": 78, "title": "激情の破壊神", "name": "ビルス", "type": "超体", "rarity": "UR", "category": "フェス限", "releaseDate": "2020/03/03", "eza": "○", "seza": "×"}, {"id": 79, "order": 79, "title": "怒涛の反撃", "name": "バーダック", "type": "超速", "rarity": "UR", "category": "フェス限", "releaseDate": "2020/03/18", "eza": "○", "seza": "×"}, {"id": 80, "order": 80, "title": "とっておきの超パワー", "name": "超サイヤ人ゴッドSS孫悟空(界王拳)", "type": "超力", "rarity": "UR", "category": "フェス限", "releaseDate": "2020/04/01", "eza": "○", "seza": "×"}, {"id": 81, "order": 81, "title": "メチャすごい合体パワー", "name": "ゴテンクス", "type": "超知", "rarity": "UR", "category": "フェス限", "releaseDate": "2020/04/24", "eza": "○", "seza": "×"}, {"id": 82, "order": 82, "title": "善と悪の分裂", "name": "魔人ブウ(善)/魔人ブウ(純粋悪)", "type": "極技", "rarity": "UR", "category": "フェス限", "releaseDate": "2020/04/24", "eza": "○", "seza": "×"}, {"id": 83, "order": 83, "title": "限界を突破した高み", "name": "ケフラ", "type": "超力", "rarity": "UR", "category": "フェス限", "releaseDate": "2020/05/29", "eza": "○", "seza": "×"}, {"id": 84, "order": 84, "title": "果てしない力の凌駕", "name": "超サイヤ人ゴッドSS孫悟空(界王拳)&超サイヤ人ゴッドSSベジータ(進化)", "type": "超体", "rarity": "LR", "category": "フェス限", "releaseDate": "2020/06/30", "eza": "○", "seza": "×"}, {"id": 85, "order": 85, "title": "限界以上に極められた力", "name": "孫悟飯(青年期)", "type": "超技", "rarity": "UR", "category": "フェス限", "releaseDate": "2020/07/31", "eza": "○", "seza": "×"}, {"id": 86, "order": 86, "title": "ひとつに重なった希望", "name": "孫悟空&ベジータ(天使)", "type": "超力", "rarity": "LR", "category": "フェス限", "releaseDate": "2020/08/29", "eza": "○", "seza": "×"}, {"id": 87, "order": 87, "title": "無敵の吸収形態", "name": "魔人ブウ(ゴテンクス吸収)", "type": "極体", "rarity": "LR", "category": "フェス限", "releaseDate": "2020/08/29", "eza": "○", "seza": "×"}, {"id": 88, "order": 88, "title": "地獄にとどろく怒り", "name": "フリーザ(最終形態)(天使)", "type": "極体", "rarity": "UR", "category": "フェス限", "releaseDate": "2020/10/05", "eza": "×", "seza": "×"}, {"id": 89, "order": 89, "title": "天下無双の超パワー", "name": "超サイヤ人4ゴジータ", "type": "超知", "rarity": "UR", "category": "フェス限", "releaseDate": "2020/10/30", "eza": "○", "seza": "×"}, {"id": 90, "order": 90, "title": "銀河を揺るがす波動", "name": "ボージャック", "type": "極力", "rarity": "UR", "category": "フェス限", "releaseDate": "2020/11/30", "eza": "○", "seza": "×"}, {"id": 91, "order": 91, "title": "あの世の秩序の崩壊", "name": "ジャネンバ", "type": "極技", "rarity": "UR", "category": "フェス限", "releaseDate": "2020/12/28", "eza": "○", "seza": "×"}, {"id": 92, "order": 92, "title": "あの世を守る正義の心", "name": "パイクーハン", "type": "超速", "rarity": "UR", "category": "フェス限", "releaseDate": "2020/12/28", "eza": "○", "seza": "×"}, {"id": 93, "order": 93, "title": "真の極意", "name": "孫悟空(身勝手の極意)", "type": "超速", "rarity": "LR", "category": "フェス限", "releaseDate": "2021/01/30", "eza": "○", "seza": "×"}, {"id": 94, "order": 94, "title": "真の戦闘民族", "name": "超サイヤ人ゴッドSSベジータ(進化)", "type": "超知", "rarity": "LR", "category": "フェス限", "releaseDate": "2021/01/30", "eza": "○", "seza": "×"}, {"id": 95, "order": 95, "title": "小さな超戦士たち", "name": "超サイヤ人トランクス(幼年期)&超サイヤ人孫悟天(幼年期)", "type": "超体", "rarity": "UR", "category": "フェス限", "releaseDate": "2021/03/04", "eza": "○", "seza": "×"}, {"id": 96, "order": 96, "title": "本能のままの破壊", "name": "伝説の超サイヤ人ブロリー", "type": "極知", "rarity": "UR", "category": "フェス限", "releaseDate": "2021/03/18", "eza": "○", "seza": "×"}, {"id": 97, "order": 97, "title": "愛と友情の仲間", "name": "ビーデル", "type": "超力", "rarity": "UR", "category": "フェス限", "releaseDate": "2021/04/01", "eza": "○", "seza": "×"}, {"id": 98, "order": 98, "title": "最強を目指す闘い", "name": "超サイヤ人孫悟空(GT)", "type": "超体", "rarity": "UR", "category": "フェス限", "releaseDate": "2021/04/28", "eza": "○", "seza": "×"}, {"id": 99, "order": 99, "title": "頂点を目指す闘い", "name": "超サイヤ人ベジータ(GT)", "type": "超知", "rarity": "UR", "category": "フェス限", "releaseDate": "2021/04/28", "eza": "○", "seza": "×"}, {"id": 100, "order": 100, "title": "ピンチに発揮されるパワー", "name": "孫悟飯(幼年期)", "type": "超速", "rarity": "UR", "category": "フェス限", "releaseDate": "2021/05/31", "eza": "○", "seza": "×"}, {"id": 101, "order": 101, "title": "復活のフュージョン", "name": "孫悟空(天使)&ベジータ(天使)", "type": "超技", "rarity": "LR", "category": "フェス限", "releaseDate": "2021/06/30", "eza": "○", "seza": "×"}, {"id": 102, "order": 102, "title": "修業で得た新しいパワー", "name": "超ベジータ", "type": "超力", "rarity": "UR", "category": "フェス限", "releaseDate": "2021/07/30", "eza": "○", "seza": "×"}, {"id": 103, "order": 103, "title": "全ての怒りを込めた一撃", "name": "超サイヤ人孫悟空", "type": "超知", "rarity": "LR", "category": "フェス限", "releaseDate": "2021/08/28", "eza": "○", "seza": "×"}, {"id": 104, "order": 104, "title": "怨恨の咆哮", "name": "フリーザ(フルパワー)", "type": "極速", "rarity": "LR", "category": "フェス限", "releaseDate": "2021/08/28", "eza": "○", "seza": "×"}, {"id": 105, "order": 105, "title": "友情の奇跡", "name": "カリフラ&ケール", "type": "超技", "rarity": "UR", "category": "フェス限", "releaseDate": "2021/10/05", "eza": "○", "seza": "×"}, {"id": 106, "order": 106, "title": "運命を変える使者", "name": "トランクス(青年期)", "type": "超速", "rarity": "UR", "category": "フェス限", "releaseDate": "2021/10/29", "eza": "○", "seza": "×"}, {"id": 107, "order": 107, "title": "命を奪うゲーム", "name": "人造人間17号(未来)&18号(未来)", "type": "極技", "rarity": "UR", "category": "フェス限", "releaseDate": "2021/11/30", "eza": "○", "seza": "×"}, {"id": 108, "order": 108, "title": "宇宙の明日を守る闘い", "name": "超サイヤ人2孫悟空", "type": "超体", "rarity": "UR", "category": "フェス限", "releaseDate": "2021/12/28", "eza": "○", "seza": "×"}, {"id": 109, "order": 109, "title": "破滅を導く魔人", "name": "魔人ブウ(純粋)", "type": "極力", "rarity": "UR", "category": "フェス限", "releaseDate": "2021/12/28", "eza": "○", "seza": "×"}, {"id": 110, "order": 110, "title": "無限パワーの神戦士", "name": "超サイヤ人ゴッド孫悟空&超サイヤ人ゴッドベジータ", "type": "超技", "rarity": "LR", "category": "フェス限", "releaseDate": "2022/01/30", "eza": "○", "seza": "×"}, {"id": 111, "order": 111, "title": "究極パワーのサイヤ人戦士", "name": "超サイヤ人4孫悟空&超サイヤ人4ベジータ", "type": "超体", "rarity": "LR", "category": "フェス限", "releaseDate": "2022/01/30", "eza": "○", "seza": "×"}, {"id": 112, "order": 112, "title": "隊長のとっておき", "name": "ギニュー", "type": "極速", "rarity": "UR", "category": "フェス限", "releaseDate": "2022/03/03", "eza": "○", "seza": "×"}, {"id": 113, "order": 113, "title": "孤独な闘い", "name": "魔人ベジータ", "type": "超知", "rarity": "UR", "category": "フェス限", "releaseDate": "2022/03/18", "eza": "○", "seza": "×"}, {"id": 114, "order": 114, "title": "実力の披露", "name": "ラディッツ", "type": "極体", "rarity": "UR", "category": "フェス限", "releaseDate": "2022/04/01", "eza": "○", "seza": "×"}, {"id": 115, "order": 115, "title": "地球の運命を背負う戦士", "name": "超サイヤ人孫悟空/超サイヤ人孫悟飯(少年期)", "type": "超力", "rarity": "UR", "category": "フェス限", "releaseDate": "2022/04/27", "eza": "○", "seza": "×"}, {"id": 116, "order": 116, "title": "超絶パワーの究極生命体", "name": "セル(第一形態)", "type": "極速", "rarity": "UR", "category": "フェス限", "releaseDate": "2022/04/27", "eza": "○", "seza": "×"}, {"id": 117, "order": 117, "title": "極限の闘志", "name": "超サイヤ人ゴッドSS孫悟空", "type": "超速", "rarity": "UR", "category": "フェス限", "releaseDate": "2022/05/31", "eza": "○", "seza": "×"}, {"id": 118, "order": 118, "title": "誇りと希望の力", "name": "超サイヤ人ゴッドSSベジータ&超サイヤ人トランクス(未来)", "type": "超知", "rarity": "LR", "category": "フェス限", "releaseDate": "2022/06/30", "eza": "○", "seza": "×"}, {"id": 119, "order": 119, "title": "受け継がれた才能", "name": "パン(GT)", "type": "超技", "rarity": "UR", "category": "フェス限", "releaseDate": "2022/07/29", "eza": "○", "seza": "×"}, {"id": 120, "order": 120, "title": "悪のプライド", "name": "クウラ(最終形態)", "type": "極力", "rarity": "LR", "category": "フェス限", "releaseDate": "2022/08/28", "eza": "○", "seza": "×"}, {"id": 121, "order": 121, "title": "全力のファイナルバトル", "name": "超サイヤ人孫悟空&超サイヤ人ベジータ", "type": "超速", "rarity": "LR", "category": "フェス限", "releaseDate": "2022/09/15", "eza": "○", "seza": "×"}, {"id": 122, "order": 122, "title": "ドラゴンボールをめぐる冒険", "name": "孫悟空(少年期)", "type": "超体", "rarity": "UR", "category": "フェス限", "releaseDate": "2022/10/04", "eza": "○", "seza": "×"}, {"id": 123, "order": 123, "title": "冷静沈着なヒーロー", "name": "ガンマ1号", "type": "超力", "rarity": "UR", "category": "フェス限", "releaseDate": "2022/10/20", "eza": "○", "seza": "×"}, {"id": 124, "order": 124, "title": "大胆不敵なヒーロー", "name": "ガンマ2号", "type": "超速", "rarity": "UR", "category": "フェス限", "releaseDate": "2022/10/20", "eza": "○", "seza": "×"}, {"id": 125, "order": 125, "title": "滅びの運命との闘い", "name": "バーダック", "type": "超技", "rarity": "UR", "category": "フェス限", "releaseDate": "2022/10/31", "eza": "×", "seza": "×"}, {"id": 126, "order": 126, "title": "地球屈指の精鋭", "name": "ヤムチャ", "type": "超知", "rarity": "UR", "category": "フェス限", "releaseDate": "2022/11/30", "eza": "○", "seza": "×"}, {"id": 127, "order": 127, "title": "覚醒するスーパーヒーロー", "name": "アルティメット孫悟飯", "type": "超体", "rarity": "LR", "category": "フェス限", "releaseDate": "2022/12/28", "eza": "○", "seza": "×"}, {"id": 128, "order": 128, "title": "爆発する潜在能力", "name": "ピッコロ(潜在能力解放)", "type": "超技", "rarity": "LR", "category": "フェス限", "releaseDate": "2022/12/28", "eza": "○", "seza": "×"}, {"id": 129, "order": 129, "title": "全宇宙最後の希望", "name": "超サイヤ人3孫悟空&超サイヤ人2ベジータ", "type": "超体", "rarity": "LR", "category": "フェス限", "releaseDate": "2023/01/29", "eza": "○", "seza": "×"}, {"id": 130, "order": 130, "title": "奇跡を起こす最終決戦", "name": "孫悟空(GT)&超サイヤ人4ベジータ", "type": "超力", "rarity": "LR", "category": "フェス限", "releaseDate": "2023/01/29", "eza": "○", "seza": "×"}, {"id": 131, "order": 131, "title": "悪に染まった人造人間", "name": "人造人間17号&ヘルファイター17号", "type": "極力", "rarity": "UR", "category": "フェス限", "releaseDate": "2023/03/06", "eza": "×", "seza": "×"}, {"id": 132, "order": 132, "title": "仲間の想いを背負った戦士", "name": "超サイヤ人ゴッド孫悟空", "type": "超体", "rarity": "UR", "category": "フェス限", "releaseDate": "2023/03/18", "eza": "○", "seza": "×"}, {"id": 133, "order": 133, "title": "強靭な想いの力", "name": "ケール(暴走)", "type": "超速", "rarity": "UR", "category": "フェス限", "releaseDate": "2023/04/01", "eza": "×", "seza": "×"}, {"id": 134, "order": 134, "title": "天下一を賭けた大勝負", "name": "孫悟空", "type": "超技", "rarity": "UR", "category": "フェス限", "releaseDate": "2023/04/28", "eza": "×", "seza": "×"}, {"id": 135, "order": 135, "title": "世界の覇権を賭けた死闘", "name": "マジュニア(巨大化)", "type": "極知", "rarity": "UR", "category": "フェス限", "releaseDate": "2023/04/28", "eza": "×", "seza": "×"}, {"id": 136, "order": 136, "title": "禁断の力を得た凶戦士", "name": "ターレス", "type": "極体", "rarity": "UR", "category": "フェス限", "releaseDate": "2023/05/31", "eza": "○", "seza": "×"}, {"id": 137, "order": 137, "title": "最高の力の進化", "name": "超サイヤ人4孫悟空", "type": "超知", "rarity": "LR", "category": "フェス限", "releaseDate": "2023/06/30", "eza": "×", "seza": "×"}, {"id": 138, "order": 138, "title": "貫きとおす信念", "name": "超サイヤ人トランクス(青年期)", "type": "超技", "rarity": "UR", "category": "フェス限", "releaseDate": "2023/07/31", "eza": "×", "seza": "×"}, {"id": 139, "order": 139, "title": "時空を超えた未来の決戦", "name": "超サイヤ人ゴッドSS孫悟空&超サイヤ人ゴッドSSベジータ", "type": "超速", "rarity": "LR", "category": "フェス限", "releaseDate": "2023/08/27", "eza": "×", "seza": "×"}, {"id": 140, "order": 140, "title": "理想の世界の始まり", "name": "合体ザマス", "type": "極技", "rarity": "LR", "category": "フェス限", "releaseDate": "2023/08/27", "eza": "×", "seza": "×"}, {"id": 141, "order": 141, "title": "火花散る生存競争", "name": "人造人間17号&18号", "type": "超知", "rarity": "UR", "category": "フェス限", "releaseDate": "2023/10/05", "eza": "×", "seza": "×"}, {"id": 142, "order": 142, "title": "壮絶な防衛戦", "name": "ピッコロ&孫悟飯(幼年期)/孫悟飯(幼年期)", "type": "超力", "rarity": "UR", "category": "フェス限", "releaseDate": "2023/10/31", "eza": "×", "seza": "×"}, {"id": 143, "order": 143, "title": "凶暴な捕食衝動", "name": "人造人間21号(通常)", "type": "極速", "rarity": "UR", "category": "フェス限", "releaseDate": "2023/11/30", "eza": "×", "seza": "×"}, {"id": 144, "order": 144, "title": "一瞬に賭ける勝負", "name": "超サイヤ人3孫悟空", "type": "超力", "rarity": "UR", "category": "フェス限", "releaseDate": "2023/12/28", "eza": "×", "seza": "×"}, {"id": 145, "order": 145, "title": "恐怖をもたらす幻魔人", "name": "ヒルデガーン", "type": "極知", "rarity": "UR", "category": "フェス限", "releaseDate": "2023/12/28", "eza": "×", "seza": "×"}, {"id": 146, "order": 146, "title": "高まる戦意の大爆発", "name": "超サイヤ人ブロリー", "type": "極速", "rarity": "LR", "category": "フェス限", "releaseDate": "2024/01/29", "eza": "×", "seza": "×"}, {"id": 147, "order": 147, "title": "究極を超えた新たな力", "name": "孫悟飯(ビースト)", "type": "超力", "rarity": "LR", "category": "フェス限", "releaseDate": "2024/02/16", "eza": "×", "seza": "×"}, {"id": 148, "order": 148, "title": "美しい最期の眺望", "name": "フリーザ(第一形態)", "type": "極速", "rarity": "UR", "category": "フェス限", "releaseDate": "2024/03/05", "eza": "×", "seza": "×"}, {"id": 149, "order": 149, "title": "強烈なライバル心", "name": "ベジータ", "type": "超技", "rarity": "UR", "category": "フェス限", "releaseDate": "2024/03/18", "eza": "×", "seza": "×"}, {"id": 150, "order": 150, "title": "第11宇宙を守るための覚悟", "name": "トッポ", "type": "超体", "rarity": "UR", "category": "フェス限", "releaseDate": "2024/04/01", "eza": "×", "seza": "×"}, {"id": 151, "order": 151, "title": "目覚める自我と闘いの喜び", "name": "魔人ブウ(善)", "type": "極知", "rarity": "UR", "category": "フェス限", "releaseDate": "2024/04/26", "eza": "×", "seza": "×"}, {"id": 152, "order": 152, "title": "刻限迫る大攻防戦", "name": "超サイヤ人3孫悟空(天使)", "type": "超速", "rarity": "UR", "category": "フェス限", "releaseDate": "2024/04/26", "eza": "×", "seza": "×"}, {"id": 153, "order": 153, "title": "怒りという力の掌握", "name": "ゴクウブラック(超サイヤ人ロゼ)", "type": "極体", "rarity": "UR", "category": "フェス限", "releaseDate": "2024/05/30", "eza": "×", "seza": "×"}, {"id": 154, "order": 154, "title": "限界を超えた神の力", "name": "孫悟空(身勝手の極意“兆”)", "type": "超技", "rarity": "LR", "category": "フェス限", "releaseDate": "2024/06/28", "eza": "×", "seza": "×"}, {"id": 155, "order": 155, "title": "次代を導く亀仙流", "name": "亀仙人", "type": "超力", "rarity": "UR", "category": "フェス限", "releaseDate": "2024/07/31", "eza": "×", "seza": "×"}, {"id": 156, "order": 156, "title": "力戦奮闘する超戦士たち", "name": "超サイヤ人孫悟空&超サイヤ人孫悟飯(少年期)&超サイヤ人トランクス(青年期)", "type": "超体", "rarity": "LR", "category": "フェス限", "releaseDate": "2024/08/28", "eza": "×", "seza": "×"}, {"id": 157, "order": 157, "title": "悪夢の再来", "name": "伝説の超サイヤ人ブロリー", "type": "極技", "rarity": "LR", "category": "フェス限", "releaseDate": "2024/09/14", "eza": "×", "seza": "×"}, {"id": 158, "order": 158, "title": "反逆の決定打", "name": "ベジータ", "type": "極速", "rarity": "UR", "category": "フェス限", "releaseDate": "2024/10/03", "eza": "×", "seza": "×"}, {"id": 159, "order": 159, "title": "大地を揺るがす超パワー", "name": "スラッグ", "type": "極力", "rarity": "UR", "category": "フェス限", "releaseDate": "2024/10/31", "eza": "×", "seza": "×"}, {"id": 160, "order": 160, "title": "究極の魔人の力", "name": "魔人ブウ(アルティメット悟飯吸収)", "type": "極技", "rarity": "UR", "category": "フェス限", "releaseDate": "2024/11/29", "eza": "×", "seza": "×"}, {"id": 161, "order": 161, "title": "新たな世界での冒険", "name": "超サイヤ人孫悟空(ミニ)(DAIMA)", "type": "超体", "rarity": "UR", "category": "フェス限", "releaseDate": "2024/12/27", "eza": "×", "seza": "×"}, {"id": 162, "order": 162, "title": "謎多き実力者", "name": "グロリオ", "type": "超知", "rarity": "UR", "category": "フェス限", "releaseDate": "2024/12/27", "eza": "×", "seza": "×"}, {"id": 163, "order": 163, "title": "天下無敵の閃光", "name": "超サイヤ人孫悟空+超サイヤ人ベジータ(天使)", "type": "超技", "rarity": "LR", "category": "フェス限", "releaseDate": "2025/01/29", "eza": "×", "seza": "×"}, {"id": 164, "order": 164, "title": "空前絶後の奇跡", "name": "超サイヤ人ベジータ(天使)+超サイヤ人孫悟空(天使)", "type": "超速", "rarity": "LR", "category": "フェス限", "releaseDate": "2025/02/15", "eza": "×", "seza": "×"}, {"id": 165, "order": 165, "title": "徹底的に突き詰めた力", "name": "超サイヤ人3ベジータ(ミニ)(DAIMA)", "type": "超体", "rarity": "UR", "category": "フェス限", "releaseDate": "2025/03/04", "eza": "×", "seza": "×"}, {"id": 166, "order": 166, "title": "ワクワクドキドキの冒険ロマン", "name": "孫悟空(少年期)", "type": "超速", "rarity": "UR", "category": "フェス限", "releaseDate": "2025/03/18", "eza": "×", "seza": "×"}, {"id": 167, "order": 167, "title": "最高レベルの決戦", "name": "セル(完全体)", "type": "極力", "rarity": "UR", "category": "フェス限", "releaseDate": "2025/04/01", "eza": "×", "seza": "×"}, {"id": 168, "order": 168, "title": "果てのない競り合い", "name": "超サイヤ人ゴッドSS孫悟空(界王拳)", "type": "超技", "rarity": "UR", "category": "フェス限", "releaseDate": "2025/04/28", "eza": "×", "seza": "×"}, {"id": 169, "order": 169, "title": "成長という名の反撃", "name": "ヒット", "type": "極知", "rarity": "UR", "category": "フェス限", "releaseDate": "2025/04/28", "eza": "×", "seza": "×"}, {"id": 170, "order": 170, "title": "一流の暗殺技", "name": "桃白白", "type": "極体", "rarity": "UR", "category": "フェス限", "releaseDate": "2025/05/30", "eza": "×", "seza": "×"}, {"id": 171, "order": 171, "title": "怒涛の未来最終決戦", "name": "超サイヤ人ゴッドSS孫悟空+超サイヤ人ゴッドSSベジータ", "type": "超力", "rarity": "LR", "category": "フェス限", "releaseDate": "2025/07/07", "eza": "×", "seza": "×"}, {"id": 172, "order": 172, "title": "邪悪な力に覆われた世界", "name": "超一星龍", "type": "極体", "rarity": "UR", "category": "フェス限", "releaseDate": "2025/07/23", "eza": "×", "seza": "×"}, {"id": 173, "order": 173, "title": "闘志満杯の新世代", "name": "超サイヤ人孫悟飯(青年期)+超サイヤ人トランクス(幼年期)&超サイヤ人孫悟天(幼年期)", "type": "超知", "rarity": "LR", "category": "フェス限", "releaseDate": "2025/08/08", "eza": "×", "seza": "×"}, {"id": 174, "order": 174, "title": "揺り動かされる戦闘本能", "name": "ゴールデンフリーザ+ゴジータ", "type": "極速", "rarity": "LR", "category": "フェス限", "releaseDate": "2025/08/29", "eza": "×", "seza": "×"}, {"id": 175, "order": 175, "title": "新生ツフル人の超パワー", "name": "スーパーベビー1", "type": "極力", "rarity": "UR", "category": "フェス限", "releaseDate": "2025/09/30", "eza": "×", "seza": "×"}, {"id": 176, "order": 176, "title": "気迫あふれる大決戦", "name": "超サイヤ人4孫悟空(ミニ)(DAIMA)", "type": "超技", "rarity": "UR", "category": "フェス限", "releaseDate": "2025/10/30", "eza": "×", "seza": "×"}, {"id": 177, "order": 177, "title": "緊急事態への対処", "name": "人造人間16号", "type": "極速", "rarity": "UR", "category": "フェス限", "releaseDate": "2025/11/28", "eza": "×", "seza": "×"}, {"id": 178, "order": 178, "title": "正義の共闘", "name": "アルティメット孫悟飯+ガンマ1号", "type": "超速", "rarity": "LR", "category": "フェス限", "releaseDate": "2025/12/29", "eza": "×", "seza": "×"}, {"id": 179, "order": 179, "title": "正義の結託", "name": "ガンマ2号+ピッコロ(潜在能力解放)", "type": "超力", "rarity": "LR", "category": "フェス限", "releaseDate": "2025/12/29", "eza": "×", "seza": "×"}];
+const STORAGE_KEY = "dokkan_fes_checker_master_2019_v1";
+let saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+
+const $ = id => document.getElementById(id);
+const list = $("list");
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+}
+
+function getState(id) {
+  return saved[id] || { owned:false, dupe:0 };
+}
+
+function uniqueValues(key) {
+  return [...new Set(characters.map(c => c[key]).filter(Boolean))];
+}
+
+function setupFilters() {
+  const superTypes = ["超速", "超技", "超知", "超力", "超体"];
+  const extremeTypes = ["極速", "極技", "極知", "極力", "極体"];
+  const availableTypes = new Set(uniqueValues("type"));
+
+  const superOptions = superTypes
+    .filter(v => availableTypes.has(v))
+    .map(v => `<option value="${v}">${v}</option>`)
+    .join("");
+
+  const extremeOptions = extremeTypes
+    .filter(v => availableTypes.has(v))
+    .map(v => `<option value="${v}">${v}</option>`)
+    .join("");
+
+  $("typeFilter").insertAdjacentHTML(
+    "beforeend",
+    `<optgroup label="超属性">${superOptions}</optgroup>
+     <optgroup label="極属性">${extremeOptions}</optgroup>`
+  );
+
+  uniqueValues("rarity").forEach(v =>
+    $("rarityFilter").insertAdjacentHTML("beforeend", `<option value="${v}">${v}</option>`));
+
+  [...new Set(characters.map(c => c.releaseDate.slice(0,4)))].sort().forEach(v =>
+    $("yearFilter").insertAdjacentHTML("beforeend", `<option value="${v}">${v}年</option>`));
+}
+
+function getFiltered() {
+  const q = $("search").value.trim().toLowerCase();
+  const type = $("typeFilter").value;
+  const rarity = $("rarityFilter").value;
+  const year = $("yearFilter").value;
+  const ownedMode = $("ownedFilter").value;
+
+  return characters.filter(c => {
+    const st = getState(c.id);
+    const searchable = `${c.title} ${c.name}`.toLowerCase();
+
+    if (q && !searchable.includes(q)) return false;
+    if (type && c.type !== type) return false;
+    if (rarity && c.rarity !== rarity) return false;
+    if (year && !c.releaseDate.startsWith(year)) return false;
+    if (ownedMode === "owned" && !st.owned) return false;
+    if (ownedMode === "missing" && st.owned) return false;
+    if (ownedMode === "rainbow" && !(st.owned && st.dupe === 4)) return false;
+    return true;
+  }).sort((a, b) => a.order - b.order);
+}
+
+function updateSummary() {
+  const total = characters.length;
+  const owned = characters.filter(c => getState(c.id).owned).length;
+  const rainbow = characters.filter(c => {
+    const st = getState(c.id);
+    return st.owned && st.dupe === 4;
+  }).length;
+  const rate = total ? owned / total * 100 : 0;
+
+  $("ownedCount").textContent = owned;
+  $("totalText").textContent = `/ ${total}`;
+  $("ownedRate").textContent = `${rate.toFixed(1)}%`;
+  $("rainbowCount").textContent = rainbow;
+  $("missingCount").textContent = total - owned;
+  $("progressBar").style.width = `${rate}%`;
+}
+
+function render() {
+  const filtered = getFiltered();
+  list.innerHTML = "";
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty">条件に一致するキャラはいません。</div>';
+    updateSummary();
+    return;
+  }
+
+  filtered.forEach(c => {
+    const st = getState(c.id);
+    const card = document.createElement("article");
+    card.className = "card" + (st.owned ? " owned" : "");
+
+    const dupeOptions = [
+      ["0","無凸"],["1","1凸"],["2","2凸"],["3","3凸"],["4","虹"]
+    ].map(([v,label]) => `<option value="${v}" ${Number(v) === st.dupe ? "selected" : ""}>${label}</option>`).join("");
+
+    const imagePath = `images/${c.id}.png`;
+
+    card.innerHTML = `
+      <div class="card-main">
+        <img class="character-icon" src="${imagePath}" alt="${c.name}"
+             onerror="if(!this.dataset.jpgTried){this.dataset.jpgTried='1';this.src='images/${c.id}.jpg';}else{this.onerror=null;this.src='images/no-image.png';}">
+        <div>
+          <div class="topline">
+            <div class="title">【${c.title}】</div>
+            <div class="id">ID ${c.id}</div>
+          </div>
+          <div class="name">${c.name}</div>
+          <div class="badges">
+        <span class="badge">${c.type}</span>
+        <span class="badge">${c.rarity}</span>
+        <span class="badge">${c.releaseDate.slice(0,4)}年</span>
+        ${c.eza === "○" ? '<span class="badge">極限</span>' : ""}
+        ${c.seza === "○" ? '<span class="badge">超極限</span>' : ""}
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <label>
+          <input class="ownedCheck" type="checkbox" ${st.owned ? "checked" : ""}>
+          所持
+        </label>
+        <label>
+          凸数
+          <select class="dupeSelect" ${st.owned ? "" : "disabled"}>
+            ${dupeOptions}
+          </select>
+        </label>
+      </div>
+      <div class="meta">
+        <span>実装日：${c.releaseDate}</span>
+        <span>種別：${c.category}</span>
+      </div>
+    `;
+
+    card.querySelector(".ownedCheck").addEventListener("change", e => {
+      const current = getState(c.id);
+      saved[c.id] = {
+        owned: e.target.checked,
+        dupe: e.target.checked ? current.dupe : 0
+      };
+      save();
+      render();
+    });
+
+    card.querySelector(".dupeSelect").addEventListener("change", e => {
+      saved[c.id] = {
+        owned: true,
+        dupe: Number(e.target.value)
+      };
+      save();
+      render();
+    });
+
+    list.appendChild(card);
+  });
+
+  updateSummary();
+}
+
+
+["search","typeFilter","rarityFilter","yearFilter","ownedFilter"].forEach(id => {
+  $(id).addEventListener(id === "search" ? "input" : "change", render);
+});
+
+$("resetBtn").addEventListener("click", () => {
+  if (!confirm("所持・凸数データをすべてリセットしますか？")) return;
+  saved = {};
+  localStorage.removeItem(STORAGE_KEY);
+  render();
+});
+
+
+setupFilters();
+render();
+</script>
+</body>
+</html>

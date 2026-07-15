@@ -6,21 +6,21 @@
 <title>ドッカン フェス限 所持率チェッカー</title>
 <style>
 :root {
-  --bg:#10131a;
-  --panel:#1a2030;
-  --panel2:#232b3e;
-  --text:#f7f8fc;
-  --muted:#aeb7ca;
+  --bg:#ffffff;
+  --panel:#ffffff;
+  --panel2:#f3f3f3;
+  --text:#222222;
+  --muted:#666666;
   --accent:#ffd54a;
   --owned:#2ecc71;
-  --line:#374057;
+  --line:#d9d9d9;
   --danger:#e85d75;
 }
 * { box-sizing:border-box; }
 body {
   margin:0;
   font-family:system-ui,-apple-system,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;
-  background:linear-gradient(180deg,#0d1017,#151a25);
+  background:#ffffff;
   color:var(--text);
   min-height:100vh;
 }
@@ -56,7 +56,7 @@ h1 {
 }
 .progress {
   height:14px;
-  background:#090d13;
+  background:#eeeeee;
   border:1px solid var(--line);
   border-radius:999px;
   overflow:hidden;
@@ -88,7 +88,7 @@ input, select, button {
   min-height:42px;
   border-radius:10px;
   border:1px solid var(--line);
-  background:#111722;
+  background:#ffffff;
   color:var(--text);
   padding:9px 10px;
   font-size:14px;
@@ -125,7 +125,7 @@ button.danger { border-color:var(--danger); }
   height:88px;
   object-fit:contain;
   border-radius:10px;
-  background:#111722;
+  background:#ffffff;
   border:1px solid var(--line);
 }
 @media (max-width:520px){
@@ -208,11 +208,113 @@ button.danger { border-color:var(--danger); }
   .controls { grid-template-columns:1fr 1fr; }
   .controls input { grid-column:1/-1; }
 }
+
+/* 明るい配色・視認性改善 */
+:root {
+  --accent:#ff5a1f;
+  --owned:#21a453;
+  --line:#dfe4ea;
+}
+body {
+  background:linear-gradient(180deg,#ffffff 0%,#fafbfc 100%);
+  color:#111827;
+}
+.brand-accent { color:#f4511e; }
+h1 { color:#111827; letter-spacing:.01em; }
+
+.stat,
+.controls,
+.card {
+  box-shadow:0 2px 10px rgba(15,23,42,.05);
+}
+.stat strong { color:#1267d6; }
+.stat:nth-child(3) strong { color:#9c27b0; }
+.stat:nth-child(4) strong { color:#e53935; }
+
+.progress {
+  background:#e9edf2;
+  border-color:#e1e6eb;
+}
+.progress > div {
+  background:linear-gradient(90deg,#1687f8,#7b2ff7);
+}
+
+.controls,
+.stat,
+.card {
+  background:#ffffff;
+}
+input, select, button {
+  background:#ffffff;
+  color:#172033;
+  border-color:#d8dee7;
+}
+input::placeholder { color:#8a94a6; }
+
+.card {
+  border:1px solid #dfe4ea;
+  border-radius:16px;
+}
+.card:hover {
+  transform:translateY(-1px);
+  box-shadow:0 5px 18px rgba(15,23,42,.10);
+}
+.card.owned {
+  border-color:#34b56a;
+  background:#f1fbf5;
+}
+.character-icon {
+  border-color:#dce2e9;
+  background:#ffffff;
+}
+
+.title {
+  color:#e64a19;
+  font-weight:900;
+}
+.name {
+  color:#111827;
+}
+.id,
+.meta {
+  color:#53627a;
+}
+
+.badge {
+  color:#ffffff;
+  font-weight:800;
+  border:none;
+  padding:4px 9px;
+  box-shadow:inset 0 -1px 0 rgba(0,0,0,.12);
+}
+.badge-type { background:#ef5350; }
+.badge-rarity { background:#8e44c5; }
+.badge-year { background:#1976d2; }
+.badge-category { background:#f57c00; }
+.badge-eza { background:#ec407a; }
+.badge-seza { background:#d81b60; }
+
+.actions label {
+  color:#172033;
+}
+.actions select {
+  background:#ffffff;
+  color:#172033;
+}
+button.danger {
+  color:#e53935;
+  background:#ffffff;
+  border:1px solid #ef5350;
+}
+button.danger:hover {
+  background:#fff5f5;
+}
+
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>ドッカン フェス限 所持率チェッカー</h1>
+  <h1><span class="brand-accent">ドッカン</span> フェス限 所持率チェッカー</h1>
 
   <section class="summary">
     <div class="stat"><span>所持数</span><strong id="ownedCount">0</strong><small id="totalText">/ 0</small></div>
@@ -355,7 +457,7 @@ function render() {
     card.innerHTML = `
       <div class="card-main">
         <img class="character-icon" src="${imagePath}" alt="${c.name}"
-             onerror="if(!this.dataset.jpgTried){this.dataset.jpgTried='1';this.src='images/${c.id}.jpg';}else{this.onerror=null;this.src='images/no-image.png';}">
+             onerror="this.onerror=null;this.src='images/no-image.png';">
         <div>
           <div class="topline">
             <div class="title">【${c.title}】</div>
@@ -363,11 +465,12 @@ function render() {
           </div>
           <div class="name">${c.name}</div>
           <div class="badges">
-        <span class="badge">${c.type}</span>
-        <span class="badge">${c.rarity}</span>
-        <span class="badge">${c.releaseDate.slice(0,4)}年</span>
-        ${c.eza === "○" ? '<span class="badge">極限</span>' : ""}
-        ${c.seza === "○" ? '<span class="badge">超極限</span>' : ""}
+        <span class="badge badge-type">${c.type}</span>
+        <span class="badge badge-rarity">${c.rarity}</span>
+        <span class="badge badge-year">${c.releaseDate.slice(0,4)}年</span>
+        <span class="badge badge-category">${c.category}</span>
+        ${c.eza === "○" ? '<span class="badge badge-eza">極限</span>' : ""}
+        ${c.seza === "○" ? '<span class="badge badge-seza">超極限</span>' : ""}
           </div>
         </div>
       </div>

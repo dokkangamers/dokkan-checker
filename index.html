@@ -456,8 +456,22 @@ function render() {
 
     card.innerHTML = `
       <div class="card-main">
-        <img class="character-icon" src="${imagePath}" alt="${c.name}"
-             onerror="this.onerror=null;this.src='images/no-image.png';">
+        <img class="character-icon"
+             src="${imagePath}"
+             alt="${c.name}"
+             data-id="${c.id}"
+             data-ext-index="0"
+             onerror="
+               const exts=['png','jpg','jpeg','webp'];
+               let i=Number(this.dataset.extIndex||0)+1;
+               if(i<exts.length){
+                 this.dataset.extIndex=String(i);
+                 this.src='images/'+this.dataset.id+'.'+exts[i];
+               }else{
+                 this.onerror=null;
+                 this.src='images/no-image.png';
+               }
+             ">
         <div>
           <div class="topline">
             <div class="title">【${c.title}】</div>
